@@ -5,10 +5,11 @@ def load_data(filename):
     return json.load(file)
 
 def constraint1(v_price, w_price, n, m, willingness):
+  # print(f"{v_price},{n},{w_price},{m}, {v_price * n + w_price * m}")
   return v_price * n + w_price * m <= willingness
 
 def constraint2(w_memory, checkpoint_size, buffer_size):
-  return w_memory <= checkpoint_size * buffer_size
+  return w_memory >= checkpoint_size * buffer_size
 
 def NWSaturationPoint(v, w):
   # Placeholder. Actual logic will be implemented later.
@@ -42,8 +43,8 @@ def findOptimalTieringArch(data, willingness, buffer_size, checkpoint_size):
 
   for v in V:
     for w in W:
-      n_max = data['available_vcpu']['spot'][v['type']] // v['vCPU']
-      m_max = data['available_vcpu']['ondemand'][w['type']] // w['vCPU']
+      n_max = data['available_vcpus'][v['type']]['spot'] // v['vCPU']
+      m_max = data['available_vcpus'][w['type']]['ondemand'] // w['vCPU']
         
       for n in range(1, n_max+1):
         for m in range(1, m_max+1):
@@ -67,8 +68,8 @@ def findOptimalSingleAnchorArch(data, willingness):
   optimal_config = None
 
   for v in V:
-    ondemand_vcpu_available = data['available_vcpu']['ondemand'][v['type']] // v['vCPU']
-    spot_vcpu_available = data['available_vcpu']['spot'][v['type']] // v['vCPU']
+    ondemand_vcpu_available = data['available_vcpus'][v['type']]['ondemand'] // v['vCPU']
+    spot_vcpu_available = data['available_vcpus'][v['type']]['spot'] // v['vCPU']
 
     # 온디맨드 1개는 필요하므로 사용 가능한지 확인
     if ondemand_vcpu_available > 0:
@@ -89,12 +90,12 @@ def main():
   
   # Gather user inputs
   pricing_willingness = float(input("Enter pricing willingness per hour: "))
-  buffer_size = float(input("Enter buffer size: "))
-  checkpoint_file_size = float(input("Enter checkpoint file size: "))
   software = input("Enter software type (sync/async): ").strip().lower()
   
   # Determine architecture and configuration
   if software == "async":
+    buffer_size = float(input("Enter buffer size: "))
+    checkpoint_file_size = float(input("Enter checkpoint file size (GB): "))
     arch = "Tiering"
     config = findOptimalTieringArch(data, pricing_willingness, buffer_size, checkpoint_file_size,)
   else:
@@ -104,13 +105,23 @@ def main():
     # If Single Anchor does not return a valid configuration, fall back to Tiering
     if not config:
       arch = "Tiering"
+      buffer_size = float(input("Enter buffer size: "))
+      checkpoint_file_size = float(input("Enter checkpoint file size (GB): "))
       config = findOptimalTieringArch(data, checkpoint_file_size, buffer_size, pricing_willingness)
 
   # Create suggestion
   suggestion = (arch, config)
   
   # Print suggestion
-  print("Suggestion:", suggestion)
+  if(arch == "Tiering"):
+    print("===================")
+    print(f"Architecture: {suggestion[0]}\nGPU Instance: {suggestion[1][0]['name']}\nThe number of GPU instances: {suggestion[1][2]}\nCPU Instance: {suggestion[1][1]['name']}\nThe number of CPU instances: {suggestion[1][3]}\nHourly price: {suggestion[1][0]['spot_price'] * suggestion[1][2] + suggestion[1][1]['ondemand_price'] * suggestion[1][3]}")
+    print("===================")
+  else:
+    print("===================")
+    print(f"Architecture: {suggestion[0]}\nGPU Instance: {suggestion[1][0]['name']}\nThe number of GPU instances: {suggestion[1][1]}\nHourly price: {suggestion[1][0]['spot_price']*(suggestion[1][1]-1) + suggestion[1][0]['ondemand_price']}")
+    print("===================")
+  # print("Suggestion:", suggestion)
 
 if __name__ == "__main__":
   main()

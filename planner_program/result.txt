@@ -1,0 +1,6 @@
+Enter pricing willingness per hour: Enter software type (sync/async): ===================
+Architecture: Single Anchor
+GPU Instance: g5.xlarge
+The number of GPU instances: 20
+Hourly price: 6.740200000000001
+===================

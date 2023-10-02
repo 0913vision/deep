@@ -18,7 +18,7 @@ def add_instance(instances):
   spot_price = float(input("Enter spot price: "))
   vCPU = int(input("Enter vCPU: "))
   memory = float(input("Enter memory size: "))
-  network_bandwidth = int(input("Enter network bandwidth (Gbps): "))
+  network_bandwidth = float(input("Enter network bandwidth (Gbps): "))
   
   instance = {
     "name": name,

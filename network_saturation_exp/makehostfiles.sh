@@ -1,7 +1,7 @@
 #!/bin/bash
 
 NODES=(1 2 4 8 12 16 20 24 28 32)
-REMOTE="remote2"
+REMOTE="remote4"
 
 rm -rf ./hostfiles
 mkdir -p ./hostfiles

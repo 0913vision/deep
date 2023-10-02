@@ -1,4 +1,5 @@
 #!/bin/bash
+REMOTE="remote4"
 
 FILE="bandwidth.txt"
 # rm $FILE
@@ -11,7 +12,7 @@ FILE="bandwidth.txt"
 # ssh remote3 "iperf -s" &
 
 exec >> $FILE 2>&1
-SERVER_IP=$(ssh remote2 "hostname -I")
+SERVER_IP=$(ssh $REMOTE "hostname -I")
 
 for((k=0; k<1; k++)); do
   for((i=1; i<=32; i++)); do

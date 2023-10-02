@@ -2,11 +2,12 @@
 NODES=(1 2 4 8 12 16 20 24 28 32)
 IP=$(hostname -I | awk '{print $1}')
 PORT=6133
-REMOTEINS="c4-xlarge"
+REMOTEINS="c5-xlarge"
+REMOTE="remote4"
 FILE="bandwidth.txt"
 
-for((k=1; k<=5; k++)); do
-    ssh remote2 "iperf -s > /dev/null 2>&1 & echo \$! > /tmp/iperf_pid" &
+for((k=2; k<=5; k++)); do
+    ssh $REMOTE "iperf -s > /dev/null 2>&1 & echo \$! > /tmp/iperf_pid" &
 
     ./networkbd.sh
 
@@ -14,9 +15,9 @@ for((k=1; k<=5; k++)); do
      /Gbits\/sec/ { sum += $7*1000; count++ } 
      END { print "Average:", sum/count, "Mbits/sec" }' $FILE >> bwlog.result
 
-    IPERF_PID=$(ssh remote2 "cat /tmp/iperf_pid")
-    ssh remote2 "kill $IPERF_PID"
-    ssh remote2 "rm /tmp/iperf_pid"
+    IPERF_PID=$(ssh $REMOTE "cat /tmp/iperf_pid")
+    ssh $REMOTE "kill $IPERF_PID"
+    ssh $REMOTE "rm /tmp/iperf_pid"
 
     rm $FILE
 
@@ -32,7 +33,7 @@ for((k=1; k<=5; k++)); do
         --shard_size $NODE \
         --remote_buffer_size 2 \
         --model_name resnet152 \
-        | tee "1002exp_result_${NODE}_nodes_${REMOTEINS}.txt"
+        | tee -a "1002exp_result_${NODE}_nodes_${REMOTEINS}.txt"  
         
         PORT=$((PORT+1))
     done

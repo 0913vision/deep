@@ -30,7 +30,7 @@ def NWSaturationPoint(v, w):
   bw = min(v['network_bandwidth'], w['network_bandwidth'])
   table = {
     0.3: 2,
-    1.6: 10,
+    1.7: 12,
     5: 16,
     10: 20,
     12.5: 24,

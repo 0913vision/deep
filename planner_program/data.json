@@ -46,7 +46,7 @@
             "spot_price": 0.1257,
             "vCPU": 4,
             "memory": 7.5,
-            "network_bandwidth": 1.6
+            "network_bandwidth": 1.7
         },
         {
             "name": "t3.xlarge",

@@ -1,0 +1,1 @@
+./comp.sh $1 > extract_$1.result

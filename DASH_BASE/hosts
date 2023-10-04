@@ -1,0 +1,11 @@
+worker1 slots=1
+worker2 slots=1
+worker3 slots=1
+worker4 slots=1
+worker5 slots=1
+worker6 slots=1
+worker7 slots=1
+worker8 slots=1
+remote1 slots=1
+remote2 slots=1
+remote3 slots=1

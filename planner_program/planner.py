@@ -1,4 +1,17 @@
 import json
+import numpy as np
+
+def S(a,b,c,n):
+    return c / (1 + np.exp(-a * (n - b)))
+
+def S_prime(a,b,c,n):
+    return c * a * np.exp(-a * (n - b)) / (1 + np.exp(-a * (n - b)))**2
+
+def L(a,b,c,n):
+    return S_prime(a,b,c,b) * (n - b) + S(a,b,c,b)
+
+def K(a,b,c,n):
+    return min(1,S(a,b,c,n)/L(a,b,c,n))
 
 def load_data(filename):
   with open(filename, "r", encoding="utf-8") as file:
@@ -12,11 +25,22 @@ def constraint2(w_memory, checkpoint_size, buffer_size):
   return w_memory >= checkpoint_size * buffer_size
 
 def NWSaturationPoint(v, w):
-  # Placeholder. Actual logic will be implemented later.
-  return 0
+  bw = min(v['network_bandwidth'], w['network_bandwidth'])
+  table = {
+    0.3: 2,
+    1.6: 10,
+    5: 16,
+    10: 20,
+    12.5: 24,
+    15: 24,
+    25: 28,
+    30: 32,
+  }
+  point = table[bw]
+  return point
 
 def constraint3(n, m, v, w):
-  return n/m > NWSaturationPoint(v, w)
+  return n/m < NWSaturationPoint(v, w) and n/m >= NWSaturationPoint(v, w) - 1
 
 def FLOPP(v, type='spot'):
   # Assuming the JSON structure holds flops as a key for each instance
@@ -30,16 +54,41 @@ def FLOPP(v, type='spot'):
     return flops / ondemand_price * 3600
 
 def ScalingFactor(v, n):
-  # Placeholder. Actual logic will be implemented later.
-  return 1
+  a_values = {
+    "g3s.xlarge": 0.1408559584,
+    "g4dn.xlarge": 0.1338806402,
+    "g5.xlarge": 0.08533428072
+  }
+  b_values = {
+    "g3s.xlarge": 14.49263334,
+    "g4dn.xlarge": 12.87424514,
+    "g5.xlarge": 20.06669931
+  }
+  c_values= {
+    "g3s.xlarge": 13.53250952,
+    "g4dn.xlarge": 6.176666667,
+    "g5.xlarge": 4.962225551
+  }
+
+  a_val = a_values[v['name']]
+  b_val = b_values[v['name']]
+  c_val = c_values[v['name']]
+
+  factor = K(a_val, b_val, 1, n)
+  if v['name'] == 'g3s.xlarge' and n==32:
+    print("g3", factor)
+  if v['name'] == 'g4dn.xlarge' and n==32:
+    print("g4dn", factor)
+  if v['name'] == 'g5.xlarge' and n==32:
+    print("g5", factor)
+  return factor
 
 
 def findOptimalTieringArch(data, willingness, buffer_size, checkpoint_size):
   V = [instance for instance in data['instances'] if instance['type'] in ('G', 'P')]
   W = [instance for instance in data['instances'] if instance['type'] not in ('G', 'P')]
 
-  Z_max = 0
-  optimal_config = None
+  config_list = []
 
   for v in V:
     for w in W:
@@ -54,18 +103,18 @@ def findOptimalTieringArch(data, willingness, buffer_size, checkpoint_size):
             constraint3(n, m, v, w)
           ):
             Z = FLOPP(v) * n * ScalingFactor(v, n)
-            if Z > Z_max:
-              Z_max = Z
-              optimal_config = (v, w, n, m)
+            config_list.append((Z, v, w, n, m))
 
-  return optimal_config
+  sorted_configs = sorted(config_list, key=lambda x: x[0], reverse=True)
+  top_5_configs = sorted_configs[:5]
+
+  return top_5_configs
 
 
 def findOptimalSingleAnchorArch(data, willingness):
   V = [instance for instance in data['instances'] if instance['type'] in ('G', 'P')]
 
-  z_max = 0
-  optimal_config = None
+  config_list = []
 
   for v in V:
     ondemand_vcpu_available = data['available_vcpus'][v['type']]['ondemand'] // v['vCPU']
@@ -78,11 +127,12 @@ def findOptimalSingleAnchorArch(data, willingness):
       for n in range(2, n_max+1):
         if v['spot_price'] * (n-1) + v['ondemand_price'] <= willingness:
           Z = (FLOPP(v) * (n-1) + FLOPP(v,'ondemand')) * ScalingFactor(v, n)
-          if Z > z_max:
-            z_max = Z
-            optimal_config = (v, n)
+          config_list.append((Z, v, n))
 
-  return optimal_config
+  sorted_configs = sorted(config_list, key=lambda x: x[0], reverse=True)
+  top_5_configs = sorted_configs[:5]
+
+  return top_5_configs
 
 def main():
   # Load JSON data
@@ -113,15 +163,15 @@ def main():
   suggestion = (arch, config)
   
   # Print suggestion
-  if(arch == "Tiering"):
-    print("===================")
-    print(f"Architecture: {suggestion[0]}\nGPU Instance: {suggestion[1][0]['name']}\nThe number of GPU instances: {suggestion[1][2]}\nCPU Instance: {suggestion[1][1]['name']}\nThe number of CPU instances: {suggestion[1][3]}\nHourly price: {suggestion[1][0]['spot_price'] * suggestion[1][2] + suggestion[1][1]['ondemand_price'] * suggestion[1][3]}")
-    print("===================")
-  else:
-    print("===================")
-    print(f"Architecture: {suggestion[0]}\nGPU Instance: {suggestion[1][0]['name']}\nThe number of GPU instances: {suggestion[1][1]}\nHourly price: {suggestion[1][0]['spot_price']*(suggestion[1][1]-1) + suggestion[1][0]['ondemand_price']}")
-    print("===================")
-  # print("Suggestion:", suggestion)
+  # if(arch == "Tiering"):
+  #   print("===================")
+  #   print(f"Architecture: {suggestion[0]}\nGPU Instance: {suggestion[1][0]['name']}\nThe number of GPU instances: {suggestion[1][2]}\nCPU Instance: {suggestion[1][1]['name']}\nThe number of CPU instances: {suggestion[1][3]}\nHourly price: {suggestion[1][0]['spot_price'] * suggestion[1][2] + suggestion[1][1]['ondemand_price'] * suggestion[1][3]}")
+  #   print("===================")
+  # else:
+  #   print("===================")
+  #   print(f"Architecture: {suggestion[0]}\nGPU Instance: {suggestion[1][0]['name']}\nThe number of GPU instances: {suggestion[1][1]}\nHourly price: {suggestion[1][0]['spot_price']*(suggestion[1][1]-1) + suggestion[1][0]['ondemand_price']}")
+  #   print("===================")
+  print("Suggestion:", suggestion)
 
 if __name__ == "__main__":
   main()

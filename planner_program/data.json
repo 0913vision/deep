@@ -8,7 +8,7 @@
             "vCPU": 4,
             "memory": 30.5,
             "network_bandwidth": 10,
-            "flops": 9.65
+            "flops": 368
         },
         {
             "name": "g4dn.xlarge",
@@ -18,7 +18,7 @@
             "vCPU": 4,
             "memory": 16.0,
             "network_bandwidth": 25,
-            "flops": 8.141
+            "flops": 802
         },
         {
             "name": "g5.xlarge",
@@ -28,7 +28,7 @@
             "vCPU": 4,
             "memory": 16.0,
             "network_bandwidth": 10,
-            "flops": 31.52
+            "flops": 1000
         },
         {
             "name": "c3.xlarge",

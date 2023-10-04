@@ -9,6 +9,7 @@ from torch.utils.data import Dataset, DataLoader
 from torch.utils.data.distributed import DistributedSampler
 from torch.nn.parallel import DistributedDataParallel as DDP
 import os
+import time
 
 import DASH_BASE
 
@@ -148,9 +149,9 @@ def load_train_objs ():
         # val_set = datasets.ImageNet('/mnt/efs/imagenet', split='val', transform=val_transform)
     '''
 
-    model = models.resnet50(num_classes=10)
+    model = models.resnet50(num_classes=10, pretrained=True)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=1e-1)
+    optimizer = torch.optim.Adam(model.parameters(), lr=1e-6)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, mode='min', patience=5, factor=0.1, verbose=False)
 
     return train_set, val_set, model, optimizer, scheduler
@@ -177,7 +178,10 @@ def main (save_period: int, total_epochs: int, batch_size: int, snapshot_path: s
     train_data = prepare_dataloader (train_dataset, batch_size)
     valldation_data = prepare_dataloader(validation_dataset, batch_size, False)
     trainer = Trainer (model, train_data, valldation_data, optimizer, scheduler, save_period, snapshot_path, train_node)
+    start_time = time.time()
     trainer.train (total_epochs)
+    if int(os.environ['RANK']) == 0:
+        print(f'makespan: {time.time()-start_time}')
 
 if __name__ == "__main__":
     import argparse

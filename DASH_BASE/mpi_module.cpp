@@ -1,5 +1,7 @@
 #include <mpi.h>
 #include <cstdlib>
+#include <stdio.h>
+#include <sys/time.h>
 
 class MPICommunication {
 public:
@@ -51,6 +53,7 @@ private:
 };
 
 extern "C" {
+    struct timeval tv;
     MPICommunication* create_mpi_communication() {
         return new MPICommunication();
     }
@@ -63,12 +66,14 @@ extern "C" {
         mpi_comm->_send(dest, tag, data, count, MPI_BYTE);
     }
 
-    void recv(MPICommunication* mpi_comm, int source, int tag, void** data, int* count) {
+    void recv(MPICommunication* mpi_comm, int source, int tag, void** data, int* count, int shard_rank, int save_count) {
         MPI_Status status;
         MPI_Probe(source, tag, MPI_COMM_WORLD, &status);
         MPI_Get_count(&status, MPI_BYTE, count);
         *data = malloc(*count);
         mpi_comm->_recv(source, tag, *data, *count, MPI_BYTE, &status);
+        // gettimeofday(&tv, NULL);
+        // printf("[%d] [%d] [sending] [%lf]\n", shard_rank, save_count , (double)tv.tv_sec + (double)tv.tv_usec / 1000000.0);
     }
     void allGatherInt(MPICommunication* mpi_comm, void* send_data, int send_count, void* recv_data, int recv_count) {
         mpi_comm->_allGather(send_data, send_count, MPI_INT, recv_data, recv_count, MPI_INT);

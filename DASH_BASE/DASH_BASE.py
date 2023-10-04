@@ -288,7 +288,7 @@ class TRAIN:
         else:
             dump = bytes()
 
-        print(f"from {self.__MPI.rank} to {self.__destinaion_list[self.__MPI.rank]}")
+        # print(f"from {self.__MPI.rank} to {self.__destinaion_list[self.__MPI.rank]}")
         self.__MPI.send(data=dump, dest=self.__destinaion_list[self.__MPI.rank], tag=0)
         del dump
 
@@ -353,7 +353,7 @@ class REMOTE:
                 self.__start_event.wait()
                 self.__start_event.clear()
                 remote_buffer_index = self.__get_remote_buffer_current_index()
-                print(f"receive: from {self.__MPI.rank}, listening {self.__MPI.sharding_rank_list[self.__rank]}")
+                # print(f"receive: from {self.__MPI.rank}, listening {self.__MPI.sharding_rank_list[self.__rank]}")
                 received_data = self.__MPI.recv(source=self.__MPI.sharding_rank_list[self.__rank], tag=0, shard_rank=self.__rank, save_count=i+1, deserialize=False)
                 self.__remote_buffer[remote_buffer_index][self.__rank-self.__first_rank] = received_data
                 self.__end_event.set()
@@ -406,17 +406,17 @@ class REMOTE:
             for _ in range(self.__save_count):
                 remote_buffer_index = self.__queue.get()
                 entire_recv_data = b''.join(self.__remote_buffer[remote_buffer_index])
-                print("join complete")
+                # print("join complete")
                 self.__clear_dirty_bit(remote_buffer_index)
                 
                 file_path_name = self.__get_file_name()
-                print("write start")
+                # print("write start")
                 with open(file_path_name, 'wb') as f:
                     f.write(entire_recv_data)
                     f.flush()
                     os.fsync(f.fileno())
                     f.close()
-                print("write complete")
+                # print("write complete")
                 del entire_recv_data
 
         def start(self):
@@ -531,10 +531,10 @@ class REMOTE:
             str: The file name and path.
         """
         fileName = "./" + str(self.__model_name)
-        if self.__file_save_in_dictionary:
-            fileName = "./" + self.__model_name+"/" + fileName
-        if self.__file_name_include_datetime:
-            fileName = fileName + "_" + datetime.now().strftime("%Y-%m-%d-%H%M%S") 
+        # if self.__file_save_in_dictionary:
+        #     fileName = "./" + self.__model_name+"/" + fileName
+        # if self.__file_name_include_datetime:
+        #     fileName = fileName + "_" + datetime.now().strftime("%Y-%m-%d-%H%M%S") 
 
         fileName = fileName + ".pt.tar"
         return fileName
